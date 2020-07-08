@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+<title>Standings</title>
+<!-- reference to css -->
+<link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+</head>
+
+<body>
+	<h3 th:text="${competition.name}"></h3>
+	<table class="table table-sm">
+		<thead>
+			<tr>
+				<th>POS</th>
+				<th>Club</th>
+				<th>MP</th>
+				<th>W</th>
+				<th>D</th>
+				<th>L</th>
+				<th>GF</th>
+				<th>GA</th>
+				<th>GD</th>
+				<th>Pts</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr th:each="tempTable : ${table}">
+				<td th:text="${tempTable.position}" />
+				<td><img th:src="${tempTable.team.crestUrl}"
+					style="width: 30px; height: 30px;" />&nbsp;<span
+					th:text="${tempTable.team.name}"></span></td>
+				<td th:text="${tempTable.playedGames}" />
+				<td th:text="${tempTable.won}" />
+				<td th:text="${tempTable.draw}" />
+				<td th:text="${tempTable.lost}" />
+				<td th:text="${tempTable.goalsFor}" />
+				<td th:text="${tempTable.goalsAgainst}" />
+				<td th:text="${tempTable.goalDifference}" />
+				<td th:text="${tempTable.points}" />
+			</tr>
+		</tbody>
+	</table>
+</body>
+</html>
