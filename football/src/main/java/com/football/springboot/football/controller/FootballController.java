@@ -1,52 +1,128 @@
 package com.football.springboot.football.controller;
 
+import java.io.File;
+import java.util.HashMap;
 import java.util.List;
-
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.client.RestTemplate;
 
-import com.football.json.demo.Competition;
-import com.football.json.demo.Response;
-import com.football.json.demo.Standings;
-import com.football.json.demo.Table;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.football.bean.matches.Matches;
+import com.football.bean.matches.MatchesResponse;
+import com.football.bean.news.Articles;
+import com.football.bean.news.NewsResponse;
+import com.football.bean.standings.Competition;
+import com.football.bean.standings.StandingsResponse;
+import com.football.bean.standings.Table;
+import com.football.bean.stats.Scorers;
+import com.football.bean.stats.StatsResponse;
+import com.football.bean.team.Team;
+import com.football.bean.team.TeamResponse;
+import com.football.dao.GetMatchesDaoImpl;
+import com.football.dao.GetNewsDaoImpl;
+import com.football.dao.GetStandingsDaoImpl;
+import com.football.dao.GetStatsDaoImpl;
 
 @Controller
-@RequestMapping("/football")
 public class FootballController {
-
-	@GetMapping("/list")
-	public String listStandings(Model theModel) {
+	
+	@GetMapping("/")
+	public String index(Model theModel){
+		GetNewsDaoImpl getNewsDaoImpl = new GetNewsDaoImpl();
+		NewsResponse newsResponse = getNewsDaoImpl.fetchNewsResponse("Football");
+		List<Articles> articles = newsResponse.getArticles();
+		theModel.addAttribute("news", articles);
+		return "index";
+	}
+	
+	@GetMapping("/football/home")
+	public String home(Model theModel){
+		GetNewsDaoImpl getNewsDaoImpl = new GetNewsDaoImpl();
+		NewsResponse newsResponse = getNewsDaoImpl.fetchNewsResponse("Football");
+		List<Articles> articles = newsResponse.getArticles();
+		theModel.addAttribute("news", articles);
+		return "index";
+	}
+	
+	@GetMapping("/football/LaLiga")
+	public String LaLigaStandings(Model theModel) {
 		try {
-			Standings standings;
-			Competition competition;
-			RestTemplate restTemplate = new RestTemplate();
-			HttpHeaders headers = new HttpHeaders();
-			headers.set("X-Auth-Token", "49b687247e9b41dd95d0a76faf2926b0");
-			HttpEntity<String> entity = new HttpEntity<String>("parameters", headers);
-			ResponseEntity<Response> respEntity = restTemplate.exchange(
-					"http://api.football-data.org/v2/competitions/PD/standings", HttpMethod.GET, entity,
-					Response.class);
-			Response theResponse = respEntity.getBody();
-			System.out.println(theResponse.getCompetition().getName());
-
-			competition = theResponse.getCompetition();
-			standings = theResponse.getStandings().get(0);
-
+			ObjectMapper mapper = new ObjectMapper();
+			GetStandingsDaoImpl standingsResponse = new GetStandingsDaoImpl();
+			String URL = "http://api.football-data.org/v2/competitions/PD/standings";
+			StandingsResponse standresponse = standingsResponse.fetchStandingsResponse(URL);
+			Competition competition = standresponse.getCompetition();
+			List<Table> table = standingsResponse.fetchTable(standresponse);
+			GetStatsDaoImpl statResponse = new GetStatsDaoImpl();
+			URL = "http://api.football-data.org/v2/competitions/PD/scorers?limit=25";
+			StatsResponse statsResponse = statResponse.fetchStatsResponse(URL);
+			GetMatchesDaoImpl matchesResponse = new GetMatchesDaoImpl();
+			URL = "http://api.football-data.org/v2/competitions/PD/matches?status=SCHEDULED";
+			MatchesResponse matchResponse = matchesResponse.fetchMatchesResponse(URL);
+			GetNewsDaoImpl getNewsDaoImpl = new GetNewsDaoImpl();
+			NewsResponse newsResponse = getNewsDaoImpl.fetchNewsResponse("La Liga");
+/*			NewsResponse newsResponse = mapper.readValue(new File("data/NewsFinal.json"), NewsResponse.class);*/
+			TeamResponse teamResponse = mapper.readValue(new File("data/teams.json"), TeamResponse.class);
+			List<Scorers> scorers = statsResponse.getScorers();
+			if (matchResponse.getCount() != 0) {
+				List<Matches> matches = matchResponse.getMatches();
+				theModel.addAttribute("matches", matches);
+			}
+			List<Articles> articles = newsResponse.getArticles();
+			HashMap<String, String> teams = new HashMap<>();
+			for (Team team : teamResponse.getTeams()) {
+				teams.put(team.getName(), team.getCrestUrl());
+			}
 			theModel.addAttribute("competition", competition);
-			theModel.addAttribute("standings", standings);
-
-			List<Table> table = standings.getTable();
+			theModel.addAttribute("news", articles);
+			theModel.addAttribute("scorers", scorers);
+			theModel.addAttribute("teams", teams);
 
 			theModel.addAttribute("table", table);
+			return "list-standings-PD";
+		} catch (Exception exp) {
+			exp.printStackTrace();
+		}
+		return null;
+	}
+	
+	@GetMapping("/football/PremierLeague")
+	public String PLStandings(Model theModel) {
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			GetStandingsDaoImpl standingsResponse = new GetStandingsDaoImpl();
+			String URL = "http://api.football-data.org/v2/competitions/PL/standings";
+			StandingsResponse standresponse = standingsResponse.fetchStandingsResponse(URL);
+			Competition competition = standresponse.getCompetition();
+			List<Table> table = standingsResponse.fetchTable(standresponse);
+			GetStatsDaoImpl statResponse = new GetStatsDaoImpl();
+			URL = "http://api.football-data.org/v2/competitions/PL/scorers?limit=25";
+			StatsResponse statsResponse = statResponse.fetchStatsResponse(URL);
+			GetMatchesDaoImpl matchesResponse = new GetMatchesDaoImpl();
+			URL = "http://api.football-data.org/v2/competitions/PL/matches?status=SCHEDULED";
+			MatchesResponse matchResponse = matchesResponse.fetchMatchesResponse(URL);
+			GetNewsDaoImpl getNewsDaoImpl = new GetNewsDaoImpl();
+			NewsResponse newsResponse = getNewsDaoImpl.fetchNewsResponse("Premier League");
+			//NewsResponse newsResponse = mapper.readValue(new File("data/PLNews.json"), NewsResponse.class);
+			TeamResponse teamResponse = mapper.readValue(new File("data/PLTeams.json"), TeamResponse.class);
+			List<Scorers> scorers = statsResponse.getScorers();
+			if (matchResponse.getCount() != 0) {
+				List<Matches> matches = matchResponse.getMatches();
+				theModel.addAttribute("matches", matches);
+			}
+			List<Articles> articles = newsResponse.getArticles();
+			HashMap<String, String> teams = new HashMap<>();
+			for (Team team : teamResponse.getTeams()) {
+				teams.put(team.getName(), team.getCrestUrl());
+			}
+			theModel.addAttribute("competition", competition);
+			theModel.addAttribute("news", articles);
+			theModel.addAttribute("scorers", scorers);
+			theModel.addAttribute("teams", teams);
 
-			return "list-standings";
+			theModel.addAttribute("table", table);
+			return "list-standings-PL";
 		} catch (Exception exp) {
 			exp.printStackTrace();
 		}
